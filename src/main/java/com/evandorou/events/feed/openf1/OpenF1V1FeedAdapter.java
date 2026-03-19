@@ -3,6 +3,8 @@ package com.evandorou.events.feed.openf1;
 import com.evandorou.events.domain.*;
 import com.evandorou.events.feed.FeedAdapter;
 import com.evandorou.events.feed.FeedId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -16,6 +18,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @Component
 public class OpenF1V1FeedAdapter implements FeedAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenF1V1FeedAdapter.class);
 
     private static final int[] F1_ODDS = {2, 3, 4};
     private static final String MARKET_NAME = "Race Winner";
@@ -60,7 +64,7 @@ public class OpenF1V1FeedAdapter implements FeedAdapter {
                     }
                 }
             } catch (NumberFormatException ignored) {
-                // invalid cursor, start from beginning
+                log.debug("Invalid events cursor ignored, restarting from first page: {}", query.cursor());
             }
         }
 
@@ -76,6 +80,9 @@ public class OpenF1V1FeedAdapter implements FeedAdapter {
             nextCursor = String.valueOf(sessions.get(endIndex - 1).sessionKey());
         }
 
+        log.debug(
+                "OpenF1 v1 listEvents page: totalSessions={} window=[{}, {}) returned={} nextCursorPresent={}",
+                sessions.size(), startIndex, endIndex, events.size(), nextCursor != null);
         return CursorPage.of(events, nextCursor);
     }
 

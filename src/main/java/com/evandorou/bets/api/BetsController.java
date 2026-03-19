@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +26,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/bets")
 public class BetsController {
+
+    private static final Logger log = LoggerFactory.getLogger(BetsController.class);
 
     private final BetService betService;
 
@@ -50,6 +54,7 @@ public class BetsController {
             @Valid @RequestBody PlaceBetRequest body
     ) {
         if (userId == null || userId.isBlank()) {
+            log.warn("Place bet rejected: missing or blank {}", UserIdentityHeader.NAME);
             return ResponseEntity.badRequest().build();
         }
         PlaceBetResponse response = betService.placeBet(
@@ -60,6 +65,7 @@ public class BetsController {
                 body.stakeEur(),
                 body.odds()
         );
+        log.info("Bet placed betId={} eventId={} marketKey={}", response.betId(), body.eventId(), body.marketKey());
         return ResponseEntity.ok(response);
     }
 
@@ -84,9 +90,41 @@ public class BetsController {
             @PathVariable UUID betId
     ) {
         if (userId == null || userId.isBlank()) {
+            log.warn("Settle bet rejected: missing or blank {}", UserIdentityHeader.NAME);
             return ResponseEntity.badRequest().build();
         }
         SettleBetResponse response = betService.settleBet(userId.trim(), betId);
+        log.info("Bet settled betId={} status={}", betId, response.status());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Settle an event (record result + all pending bets)",
+            description = """
+                    Records the winning **driver number** for an OpenF1 v1 event (validated against OpenF1 drivers for the session).
+                    Then settles every **PENDING** bet on the `winner` market for that event: winners receive **stake × odds** on their balance.
+                    Repeating with the same event and driver is idempotent (only new pending bets are processed).
+                    If a different winner was already stored for this event, the API returns **409**."""
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Result recorded and pending bets settled"),
+            @ApiResponse(responseCode = "400", description = "Invalid event id, driver, or validation error", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Conflicting winner vs stored event result", content = @Content)
+    })
+    @PostMapping("/events/settle")
+    public ResponseEntity<SettleEventResponse> settleEvent(
+            @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true)
+            @RequestHeader(value = UserIdentityHeader.NAME, required = false) String userId,
+            @Valid @RequestBody SettleEventRequest body
+    ) {
+        if (userId == null || userId.isBlank()) {
+            log.warn("Settle event rejected: missing or blank {}", UserIdentityHeader.NAME);
+            return ResponseEntity.badRequest().build();
+        }
+        SettleEventResponse response = betService.settleEventWithResult(body.eventId().trim(), body.driverNumber());
+        log.info(
+                "Event settlement recorded eventId={} winningDriver={} betsSettled={} won={} lost={}",
+                response.eventId(), response.winningDriverNumber(), response.betsSettled(), response.wonCount(), response.lostCount());
         return ResponseEntity.ok(response);
     }
 }

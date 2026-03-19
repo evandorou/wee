@@ -1,0 +1,247 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-wee-api-0001",
+		"name": "WEE — Winning Events Ensured",
+		"description": "Covers the WEE REST API: **Events** (OpenF1 listing), **Bets** (place, per-bet settle, event bulk settle), and **OpenAPI/Swagger** discovery.\n\nSet `baseUrl` (default `http://localhost:9080`) and `userId` (`X-User-Id`). After **Place bet**, the response test saves `betId` for **Settle bet**. Use an `eventId` from **List events** (field `id`, e.g. `openf1:v1:9140`) for placement and settlement; `outcomeId` is a driver number string from `markets[].outcomes[].id`.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:9080" },
+		{ "key": "userId", "value": "user-123" },
+		{ "key": "betId", "value": "00000000-0000-0000-0000-000000000000" },
+		{ "key": "eventId", "value": "openf1:v1:9140" },
+		{ "key": "nextCursor", "value": "" }
+	],
+	"item": [
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "List events (default OpenF1 v1)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/events?limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "events"],
+							"query": [
+								{ "key": "limit", "value": "20", "description": "Page size (default 20)" }
+							]
+						},
+						"description": "Cursor-paginated events. Default feed is OpenF1 v1 when `feedId`/`feedVersion` are omitted."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const j = pm.response.json();",
+									"  if (j.items && j.items[0] && j.items[0].id) {",
+									"    pm.collectionVariables.set('eventId', j.items[0].id);",
+									"  }",
+									"  if (j.nextCursor) pm.collectionVariables.set('nextCursor', j.nextCursor);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "List events (filters: year, country, eventType)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/events?year=2024&country=Monaco&eventType=Race&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "events"],
+							"query": [
+								{ "key": "year", "value": "2024" },
+								{ "key": "country", "value": "Monaco" },
+								{ "key": "eventType", "value": "Race" },
+								{ "key": "limit", "value": "10" }
+							]
+						},
+						"description": "OpenF1-specific filters: `eventType` is session type (e.g. Race, Qualifying); `country` is country name."
+					}
+				},
+				{
+					"name": "List events (explicit feed openf1 + v1)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/events?feedId=openf1&feedVersion=v1&limit=5",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "events"],
+							"query": [
+								{ "key": "feedId", "value": "openf1" },
+								{ "key": "feedVersion", "value": "v1" },
+								{ "key": "limit", "value": "5" }
+							]
+						},
+						"description": "Selects the OpenF1 v1 adapter explicitly (equivalent to omitting both when only one feed is registered)."
+					}
+				},
+				{
+					"name": "List events (cursor page)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/events?cursor={{nextCursor}}&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "events"],
+							"query": [
+								{ "key": "cursor", "value": "{{nextCursor}}", "description": "From previous response `nextCursor`; run List events (default) first or paste a cursor." },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "Pass `nextCursor` from a previous page. Variable `nextCursor` is filled by the first list request’s test script when present."
+					}
+				},
+				{
+					"name": "List events (missing X-User-Id — expect 400)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/events?limit=1"
+					},
+					"description": "Events API requires `X-User-Id`; empty body 400."
+				}
+			]
+		},
+		{
+			"name": "Bets",
+			"item": [
+				{
+					"name": "Place bet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"marketKey\": \"winner\",\n  \"outcomeId\": \"1\",\n  \"stakeEur\": 10.00,\n  \"odds\": 3\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/bets",
+						"description": "Validates event/outcome against OpenF1 drivers; deducts stake. First-time user gets 100 EUR balance. Adjust `outcomeId` to a real driver number for `eventId`."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const j = pm.response.json();",
+									"  if (j.betId) pm.collectionVariables.set('betId', j.betId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Settle bet (by betId)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" }
+						],
+						"url": "{{baseUrl}}/api/v1/bets/{{betId}}/settle",
+						"description": "Uses stored `event_result` if present, else OpenF1 `session_result` P1. Win pays stake × odds. Idempotent per bet. Run **Place bet** first or set `betId` manually."
+					}
+				},
+				{
+					"name": "Settle event (record winner + all pending bets)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "X-User-Id", "value": "{{userId}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"driverNumber\": 1\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/bets/events/settle",
+						"description": "Persists winner in PostgreSQL and settles every PENDING `winner` bet on that event. Driver must exist in OpenF1 for the session. Same event+driver again only settles new pending bets; different driver after record → 409."
+					}
+				},
+				{
+					"name": "Place bet (missing X-User-Id — expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"openf1:v1:1\",\n  \"marketKey\": \"winner\",\n  \"outcomeId\": \"1\",\n  \"stakeEur\": 1.00,\n  \"odds\": 2\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/bets"
+					}
+				},
+				{
+					"name": "Settle bet (missing X-User-Id — expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/bets/{{betId}}/settle"
+					}
+				},
+				{
+					"name": "Settle event (missing X-User-Id — expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"openf1:v1:1\",\n  \"driverNumber\": 1\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/bets/events/settle"
+					}
+				}
+			]
+		},
+		{
+			"name": "OpenAPI & Swagger UI",
+			"item": [
+				{
+					"name": "OpenAPI JSON (v3)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/v1/api-docs",
+						"description": "Machine-readable OpenAPI 3 spec."
+					}
+				},
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/swagger-ui/index.html",
+						"description": "Interactive API docs (`/swagger-ui.html` redirects here)."
+					}
+				}
+			]
+		}
+	]
+}

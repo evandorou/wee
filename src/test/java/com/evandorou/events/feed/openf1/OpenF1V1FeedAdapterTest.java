@@ -164,7 +164,7 @@ class OpenF1V1FeedAdapterTest {
         Optional<String> lastSessionType = Optional.empty();
 
         StubOpenF1Client() {
-            super(new RestTemplate(), "http://test.local");
+            super(new RestTemplate(), "http://test.local", 0);
         }
 
         @Override

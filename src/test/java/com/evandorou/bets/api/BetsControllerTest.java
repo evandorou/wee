@@ -63,4 +63,31 @@ class BetsControllerTest {
         mockMvc.perform(post("/api/v1/bets/{id}/settle", UUID.randomUUID()))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void settleEvent_missingUserId_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/bets/events/settle")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"eventId\":\"openf1:v1:1\",\"driverNumber\":1}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void settleEvent_delegatesToService() throws Exception {
+        when(betService.settleEventWithResult(eq("openf1:v1:1"), eq(44)))
+                .thenReturn(new SettleEventResponse("openf1:v1:1", 44, 3, 1, 2));
+
+        mockMvc.perform(post("/api/v1/bets/events/settle")
+                        .header("X-User-Id", "operator-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"eventId\":\"openf1:v1:1\",\"driverNumber\":44}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventId").value("openf1:v1:1"))
+                .andExpect(jsonPath("$.winningDriverNumber").value(44))
+                .andExpect(jsonPath("$.betsSettled").value(3))
+                .andExpect(jsonPath("$.wonCount").value(1))
+                .andExpect(jsonPath("$.lostCount").value(2));
+
+        verify(betService).settleEventWithResult(eq("openf1:v1:1"), eq(44));
+    }
 }

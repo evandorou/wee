@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +27,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/events")
 public class EventsController {
+
+    private static final Logger log = LoggerFactory.getLogger(EventsController.class);
 
     private final FeedRegistry feedRegistry;
 
@@ -61,6 +65,7 @@ public class EventsController {
             @RequestParam(defaultValue = "20") int limit
     ) {
         if (userId == null || userId.isBlank()) {
+            log.warn("List events rejected: missing or blank {}", UserIdentityHeader.NAME);
             return ResponseEntity.badRequest().build();
         }
 
@@ -69,6 +74,9 @@ public class EventsController {
         CursorPage<Event> page = feedRegistry.get(fid).listEvents(query);
         List<EventResponse> items = page.items().stream().map(EventResponse::from).toList();
         CursorPageResponse<EventResponse> body = new CursorPageResponse<>(items, page.nextCursor(), page.hasMore());
+        log.info(
+                "Listed events feed={} itemCount={} hasMore={} filters=[eventType={}, year={}, country={}]",
+                fid.asKey(), items.size(), page.hasMore(), eventType, year, country);
         return ResponseEntity.ok(body);
     }
 

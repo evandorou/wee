@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Schema(description = "Settlement uses OpenF1 session_result P1; win pays stake × odds.")
+@Schema(description = "Uses stored event result if present; else OpenF1 session_result P1. Win pays stake × odds.")
 public record SettleBetResponse(
         UUID betId,
         String status,
