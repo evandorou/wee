@@ -1,0 +1,15 @@
+services:
+  wee:
+    image: com.evandorou/wee:0.1.0-SNAPSHOT
+    container_name: wee
+    ports:
+      - "9080:9080"
+    # Optional: override OpenF1 base URL
+    # environment:
+    #   WEE_FEEDS_OPENF1_BASE_URL: https://api.openf1.org
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--header=X-User-Id: healthcheck", "http://localhost:9080/api/v1/events"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
