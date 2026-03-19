@@ -19,9 +19,12 @@ public class OpenF1Client {
 
     private static final String SESSIONS_PATH = "/v1/sessions";
     private static final String DRIVERS_PATH = "/v1/drivers";
+    private static final String SESSION_RESULT_PATH = "/v1/session_result";
     private static final ParameterizedTypeReference<List<OpenF1SessionDto>> SESSION_LIST_TYPE =
             new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<List<OpenF1DriverDto>> DRIVER_LIST_TYPE =
+            new ParameterizedTypeReference<>() {};
+    private static final ParameterizedTypeReference<List<OpenF1SessionResultDto>> SESSION_RESULT_LIST_TYPE =
             new ParameterizedTypeReference<>() {};
 
     private final RestTemplate restTemplate;
@@ -57,6 +60,26 @@ public class OpenF1Client {
                 .toUriString();
         try {
             ResponseEntity<List<OpenF1DriverDto>> response = restTemplate.exchange(url, HttpMethod.GET, null, DRIVER_LIST_TYPE);
+            return response.getBody() != null ? response.getBody() : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Final session classification rows from OpenF1 (historical once results are published).
+     *
+     * @param sessionKey OpenF1 session key (same as in WEE event ids {@code openf1:v1:{key}})
+     * @param position   e.g. {@code 1} for session winner (P1)
+     */
+    public List<OpenF1SessionResultDto> getSessionResult(int sessionKey, int position) {
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + SESSION_RESULT_PATH)
+                .queryParam("session_key", sessionKey)
+                .queryParam("position", position)
+                .toUriString();
+        try {
+            ResponseEntity<List<OpenF1SessionResultDto>> response =
+                    restTemplate.exchange(url, HttpMethod.GET, null, SESSION_RESULT_LIST_TYPE);
             return response.getBody() != null ? response.getBody() : List.of();
         } catch (Exception e) {
             return List.of();

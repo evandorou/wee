@@ -13,7 +13,10 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("WEE API")
-                        .description("Winning Events Ensured — event listing and related APIs. User identity is conveyed via `X-User-Id`.")
+                        .description("""
+                                Winning Events Ensured — event listing, OpenF1-backed bet placement, and settlement.
+                                User identity is conveyed via `X-User-Id` (external id). Internal `wee_user.id` (UUID) and
+                                EUR balance live only in PostgreSQL; balance changes through bet placement/settlement, not a public top-up API.""")
                         .version("0.1.0"));
     }
 }

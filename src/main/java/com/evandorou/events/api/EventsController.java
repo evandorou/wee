@@ -1,5 +1,6 @@
 package com.evandorou.events.api;
 
+import com.evandorou.api.UserIdentityHeader;
 import com.evandorou.events.domain.CursorPage;
 import com.evandorou.events.domain.Event;
 import com.evandorou.events.domain.EventListingQuery;
@@ -25,8 +26,6 @@ import java.util.List;
 @RequestMapping("/api/v1/events")
 public class EventsController {
 
-    private static final String USER_ID_HEADER = "X-User-Id";
-
     private final FeedRegistry feedRegistry;
 
     public EventsController(FeedRegistry feedRegistry) {
@@ -45,7 +44,7 @@ public class EventsController {
     @GetMapping
     public ResponseEntity<CursorPageResponse<EventResponse>> listEvents(
             @Parameter(name = "X-User-Id", description = "Opaque user id from the identity system", in = ParameterIn.HEADER, required = true)
-            @RequestHeader(value = USER_ID_HEADER, required = false) String userId,
+            @RequestHeader(value = UserIdentityHeader.NAME, required = false) String userId,
             @Parameter(description = "Feed id (e.g. openf1); with feedVersion selects adapter")
             @RequestParam(required = false) String feedId,
             @Parameter(description = "Feed version (e.g. v1)")
