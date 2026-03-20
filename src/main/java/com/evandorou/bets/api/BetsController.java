@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,9 +44,17 @@ public class BetsController {
                     There is no API to set balance arbitrarily—only placement/settlement change it."""
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Bet created (status PENDING)"),
-            @ApiResponse(responseCode = "400", description = "Validation or invalid event/outcome", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Insufficient balance", content = @Content)
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Bet created (status PENDING)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PlaceBetResponse.class))),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Missing or blank `X-User-Id` (empty body) or validation / invalid bet (`ApiErrorBody` JSON)"),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Insufficient balance (`ApiErrorBody` with e.g. `INSUFFICIENT_BALANCE`)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorBody.class)))
     })
     @PostMapping
     public ResponseEntity<PlaceBetResponse> placeBet(
@@ -72,15 +81,31 @@ public class BetsController {
     @Operation(
             summary = "Settle a bet",
             description = """
-                    For OpenF1 v1 events, loads **session_result** with position=1 from OpenF1 (historical data when published).
+                    For OpenF1 v1 events, uses the stored **event_result** winner when one exists (from **Settle event**);
+                    otherwise loads **session_result** with position=1 from OpenF1 (historical data when published).
                     If the bet outcome matches the winning driver's number, credits **stake × odds** to balance.
                     Idempotent: repeating for an already settled bet returns the same result."""
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Settlement result"),
-            @ApiResponse(responseCode = "403", description = "Bet belongs to another user", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Unknown bet id", content = @Content),
-            @ApiResponse(responseCode = "409", description = "OpenF1 has no result yet", content = @Content)
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Settlement result",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = SettleBetResponse.class))),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Missing or blank `X-User-Id` (empty body)"),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Bet belongs to another user",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorBody.class))),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Unknown bet id",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorBody.class))),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "No winner available yet (e.g. OpenF1 has no P1 result)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorBody.class)))
     })
     @PostMapping("/{betId}/settle")
     public ResponseEntity<SettleBetResponse> settleBet(
@@ -107,9 +132,17 @@ public class BetsController {
                     If a different winner was already stored for this event, the API returns **409**."""
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Result recorded and pending bets settled"),
-            @ApiResponse(responseCode = "400", description = "Invalid event id, driver, or validation error", content = @Content),
-            @ApiResponse(responseCode = "409", description = "Conflicting winner vs stored event result", content = @Content)
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Result recorded and pending bets settled",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = SettleEventResponse.class))),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Missing or blank `X-User-Id` (empty body) or invalid body / event / driver (`ApiErrorBody` JSON)"),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Stored winner for this event differs from requested driver (`ApiErrorBody`, e.g. `EVENT_RESULT_CONFLICT`)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorBody.class)))
     })
     @PostMapping("/events/settle")
     public ResponseEntity<SettleEventResponse> settleEvent(

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,8 +43,11 @@ public class EventsController {
      */
     @Operation(summary = "List events", description = "Cursor-paginated events with optional filters. Omit feedId/feedVersion to use the default OpenF1 v1 feed.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Page of events"),
-            @ApiResponse(responseCode = "400", description = "Missing or blank X-User-Id", content = @Content)
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Page of events (`items`: `EventResponse[]`; `nextCursor`; `hasMore`)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CursorPageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Missing or blank `X-User-Id` (empty body)", content = @Content)
     })
     @GetMapping
     public ResponseEntity<CursorPageResponse<EventResponse>> listEvents(

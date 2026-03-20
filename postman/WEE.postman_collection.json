@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "a1b2c3d4-wee-api-0001",
 		"name": "WEE — Winning Events Ensured",
-		"description": "Covers the WEE REST API: **Events** (OpenF1 listing), **Bets** (place, per-bet settle, event bulk settle), and **OpenAPI/Swagger** discovery.\n\nSet `baseUrl` (default `http://localhost:9080`) and `userId` (`X-User-Id`). After **Place bet**, the response test saves `betId` for **Settle bet**. Use an `eventId` from **List events** (field `id`, e.g. `openf1:v1:9140`) for placement and settlement; `outcomeId` is a driver number string from `markets[].outcomes[].id`.",
+		"description": "Covers the WEE REST API: **Events** (OpenF1 listing), **Bets** (place, per-bet settle, event bulk settle), and **OpenAPI/Swagger** discovery.\n\n**JSON:** camelCase property names; full field tables match Swagger/OpenAPI (`@Schema` on Java DTOs) — see repo **`postman/README.md`**.\n\n**Variables:** `baseUrl` (default `http://localhost:9080`), `userId` → sent as **`X-User-Id`**. After **Place bet**, the test script saves **`betId`**. **List events (default)** can set **`eventId`** from **`items[0].id`** and **`nextCursor`**.\n\n**Listing → bets:** `items[].id` → request **`eventId`**; `items[].markets[].id` → **`marketKey`** (v1: `winner`); `items[].markets[].outcomes[].id` → **`outcomeId`** (driver number string). **Place bet** response: **`betId`**, **`status`**, **`balanceAfter`**.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [

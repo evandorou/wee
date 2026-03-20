@@ -5,13 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-@Schema(description = "Record the race winner for an OpenF1 v1 event and settle all pending winner bets.")
+@Schema(description = "Record the race winner for an OpenF1 v1 event and settle all pending `winner` bets. JSON uses camelCase.")
 public record SettleEventRequest(
         @NotBlank
-        @Schema(description = "WEE event id, e.g. openf1:v1:9140", example = "openf1:v1:9140")
+        @Schema(description = "WEE event id from listing (`items[].id`)", example = "openf1:v1:9140", requiredMode = Schema.RequiredMode.REQUIRED)
         String eventId,
         @NotNull
         @Positive
-        @Schema(description = "Winning driver number (must be a driver listed for the session in OpenF1)", example = "1")
+        @Schema(description = "Winning driver number; must match a driver OpenF1 returns for the session", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         Integer driverNumber
 ) {}

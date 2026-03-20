@@ -181,8 +181,9 @@ public class BetService {
     }
 
     /**
-     * Resolves settlement from OpenF1 {@code session_result} position 1: if the bet outcome matches the winning
-     * driver's number, the user is credited {@code stake * odds}; otherwise the bet is lost (stake was already taken).
+     * Resolves the winning driver from the stored {@code event_result} when present; otherwise from OpenF1
+     * {@code session_result} with {@code position=1}. If the bet outcome matches that driver number, the user is
+     * credited {@code stake × odds}; otherwise the bet is lost (stake was already taken).
      * Calling again for an already settled bet returns the same outcome without changing balances.
      */
     @Transactional

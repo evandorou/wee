@@ -7,7 +7,7 @@ Java 21 + Spring Boot REST API for **listing events**, **bet placement**, and **
 - **[Architecture](ARCHITECTURE.md)** — tech stack, layers, key decisions, persistence, OpenF1 rules, API conventions.
 - **OpenAPI** — JSON at [`/v1/api-docs`](http://localhost:9080/v1/api-docs) when the app is running.
 - **Swagger UI** — interactive docs at [`/swagger-ui.html`](http://localhost:9080/swagger-ui.html) (redirects to `/swagger-ui/index.html`).
-- **Postman** — import [`postman/WEE.postman_collection.json`](postman/WEE.postman_collection.json) for requests covering events, bets, settlement, OpenAPI/Swagger URLs, and a few 400 checks (see [`postman/README.md`](postman/README.md)).
+- **Postman** — import [`postman/WEE.postman_collection.json`](postman/WEE.postman_collection.json) for requests covering events, bets, settlement, OpenAPI/Swagger URLs, and a few 400 checks (see [`postman/README.md`](postman/README.md) for **JSON field names** aligned with OpenAPI).
 
 ## Events module (listing)
 
@@ -24,7 +24,7 @@ Java 21 + Spring Boot REST API for **listing events**, **bet placement**, and **
 - **Settle one bet** (`POST /api/v1/bets/{betId}/settle`): If an **event result** was recorded (see below), uses that winning driver; otherwise reads OpenF1 **`/v1/session_result`** with `position=1`. If the bet’s outcome matches the winner, credits **stake × odds**; otherwise marks the bet lost. Repeating settlement for the same bet is idempotent.
 - **Settle event** (`POST /api/v1/bets/events/settle`): Body `{"eventId":"openf1:v1:{session_key}","driverNumber":<int>}`. Validates the driver against OpenF1 for that session, **stores the result** in PostgreSQL, then settles **all PENDING** `winner` bets on that event and credits winners. Same `eventId` + `driverNumber` again only processes new pending bets; a **different** stored winner returns **409** (`EVENT_RESULT_CONFLICT`).
 
-Structured errors from bet APIs use JSON `{ "error": "CODE", "message": "..." }` (e.g. `INSUFFICIENT_BALANCE`, `409`).
+Structured errors from bet APIs use JSON `{ "error": "CODE", "message": "..." }` (for example `INSUFFICIENT_BALANCE` with HTTP **409 Conflict**).
 
 ### Run
 

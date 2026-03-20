@@ -108,13 +108,14 @@ Schema is owned by **Flyway**.
 - **Listing** — `OpenF1Client` `/v1/sessions` + `/v1/drivers`; `OpenF1V1FeedAdapter` builds one **Race Winner** market; outcome **id** = driver number; **odds** randomly **2, 3, or 4** per outcome (product simplification).
 - **Placement** — `BetService` parses `openf1:v1:{session_key}`, validates driver set, ensures user, locks row, deducts stake if sufficient balance.
 - **Settlement (event)** — Validate winner against OpenF1 drivers, persist `event_result`, settle every pending `winner` bet; winners credited **stake × odds**.
-- **Settlement (single bet)** — As above for winner source; loss keeps stake already deducted.
+- **Settlement (single bet)** — Same winner resolution as in the betting model (stored `event_result`, else OpenF1 P1); loss keeps stake already deducted; idempotent when the bet is already terminal.
 
 ---
 
 ## API conventions
 
 - **Versioned base path** — `/api/v1/...`
+- **JSON** — Request/response bodies use **camelCase** keys; field-level descriptions live on DTOs (`io.swagger.v3.oas.annotations.media.Schema`) and surface in **OpenAPI/Swagger**; the **Postman** notes in `postman/README.md` mirror the same fields.
 - **User header** — `X-User-Id` required (non-blank) for events and bet endpoints where implemented; missing → **400** (events often return empty body).
 - **Events pagination** — `cursor`, `limit`; response includes `nextCursor`, `hasMore`.
 - **Config** — `application.properties` / env (datasource, `wee.feeds.openf1.base-url`, server port **9080** in typical setups).
@@ -123,5 +124,4 @@ Schema is owned by **Flyway**.
 
 ## Further reading
 
-- **Expanded decision log** (same content as historically maintained in ARC): [docs/ARC/DECISIONS.md](ARC/DECISIONS.md) — per-topic context / decision / rationale in long form.
-- **ARC index**: [docs/ARC/README.md](ARC/README.md).
+- **[README](README.md)** — run instructions, curl examples, and module overview.
