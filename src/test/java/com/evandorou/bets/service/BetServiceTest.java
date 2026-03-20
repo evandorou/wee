@@ -146,4 +146,37 @@ class BetServiceTest {
         assertThat(settled.status()).isEqualTo("WON");
         verify(openF1Client, never()).getSessionResult(anyInt(), anyInt());
     }
+
+    @Test
+    void placeBet_whenOpenF1ReturnsNoDrivers_throwsInvalidBetEventNotFound() {
+        when(openF1Client.getDriversForSession(999)).thenReturn(List.of());
+
+        assertThatThrownBy(() ->
+                betService.placeBet("ext-x", "openf1:v1:999", "winner", "1", new BigDecimal("10.00"), 3))
+                .isInstanceOf(InvalidBetException.class)
+                .hasFieldOrPropertyWithValue("code", "EVENT_NOT_FOUND");
+    }
+
+    @Test
+    void settleBet_whenNoStoredResultAndOpenF1SessionResultEmpty_throwsResultNotAvailable() {
+        when(openF1Client.getDriversForSession(9140))
+                .thenReturn(List.of(new OpenF1DriverDto(1, "A", "A")));
+        when(openF1Client.getSessionResult(eq(9140), eq(1))).thenReturn(List.of());
+
+        PlaceBetResponse placed = betService.placeBet(
+                "ext-no-result", "openf1:v1:9140", "winner", "1", new BigDecimal("10.00"), 3);
+
+        assertThatThrownBy(() -> betService.settleBet("ext-no-result", placed.betId()))
+                .isInstanceOf(ResultNotAvailableException.class)
+                .hasFieldOrPropertyWithValue("code", "RESULT_NOT_AVAILABLE");
+    }
+
+    @Test
+    void settleEventWithResult_whenOpenF1ReturnsNoDrivers_throwsInvalidBetEventNotFound() {
+        when(openF1Client.getDriversForSession(999)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> betService.settleEventWithResult("openf1:v1:999", 1))
+                .isInstanceOf(InvalidBetException.class)
+                .hasFieldOrPropertyWithValue("code", "EVENT_NOT_FOUND");
+    }
 }

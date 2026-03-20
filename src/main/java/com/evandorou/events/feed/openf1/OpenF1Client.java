@@ -9,6 +9,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -57,6 +59,8 @@ public class OpenF1Client {
 
     /**
      * Fetch sessions with optional filters. OpenF1 supports year, country_name, session_type.
+     *
+     * @return session rows, or {@code null} if the request failed (not cached)
      */
     @Cacheable(cacheNames = "openf1Sessions", unless = "#result == null")
     public List<OpenF1SessionDto> getSessions(Optional<Integer> year, Optional<String> countryName, Optional<String> sessionType) {
@@ -65,9 +69,15 @@ public class OpenF1Client {
         countryName.filter(s -> s != null && !s.isBlank()).ifPresent(c -> builder.queryParam("country_name", c));
         sessionType.filter(s -> s != null && !s.isBlank()).ifPresent(t -> builder.queryParam("session_type", t));
         String url = builder.toUriString();
-        log.debug("OpenF1 getSessions: {}", url);
-        ResponseEntity<List<OpenF1SessionDto>> response = exchangeWith429Retry(url, SESSION_LIST_TYPE);
-        return response.getBody() != null ? response.getBody() : List.of();
+        try {
+            log.debug("OpenF1 getSessions: {}", url);
+            ResponseEntity<List<OpenF1SessionDto>> response = exchangeWith429Retry(url, SESSION_LIST_TYPE);
+            return response.getBody() != null ? response.getBody() : List.of();
+        } catch (Exception e) {
+            log.warn("OpenF1 getSessions failed: {}", e.getMessage());
+            log.debug("OpenF1 getSessions failure detail", e);
+            return null;
+        }
     }
 
     /**
@@ -134,6 +144,13 @@ public class OpenF1Client {
                     continue;
                 }
                 log.warn("OpenF1 HTTP error {} for {}: {}", e.getStatusCode().value(), url, e.getMessage());
+                throw e;
+            } catch (HttpServerErrorException e) {
+                log.warn("OpenF1 HTTP {} for {}: {}", e.getStatusCode().value(), url, e.getMessage());
+                throw e;
+            } catch (RestClientException e) {
+                log.warn("OpenF1 request failed for {}: {}", url, e.getMessage());
+                log.debug("OpenF1 request failure detail", e);
                 throw e;
             }
         }

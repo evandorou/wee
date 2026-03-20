@@ -42,6 +42,17 @@ class OpenF1V1FeedAdapterTest {
     }
 
     @Test
+    void listEvents_getSessionsFailed_returnsEmptyPageWithoutThrowing() {
+        client.sessionsResponse = null;
+
+        CursorPage<Event> page = adapter.listEvents(new EventListingQuery(null, null, null, null, 20));
+
+        assertThat(page.items()).isEmpty();
+        assertThat(page.hasMore()).isFalse();
+        assertThat(page.nextCursor()).isNull();
+    }
+
+    @Test
     void listEvents_sortsBySessionKey() {
         OpenF1SessionDto later = session(20, "Race", "Monza");
         OpenF1SessionDto earlier = session(10, "Quali", "Monza");

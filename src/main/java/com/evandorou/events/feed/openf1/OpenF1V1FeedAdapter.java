@@ -37,11 +37,13 @@ public class OpenF1V1FeedAdapter implements FeedAdapter {
 
     @Override
     public CursorPage<Event> listEvents(EventListingQuery query) {
-        List<OpenF1SessionDto> sessions = client.getSessions(
-                Optional.ofNullable(query.year()),
-                Optional.ofNullable(query.country()).filter(s -> !s.isBlank()),
-                Optional.ofNullable(query.eventType()).filter(s -> !s.isBlank())
-        );
+        List<OpenF1SessionDto> sessions = Optional.ofNullable(
+                client.getSessions(
+                        Optional.ofNullable(query.year()),
+                        Optional.ofNullable(query.country()).filter(s -> !s.isBlank()),
+                        Optional.ofNullable(query.eventType()).filter(s -> !s.isBlank())
+                )
+        ).orElseGet(List::of);
 
         // Sort by session_key for stable cursor pagination
         sessions = sessions.stream()

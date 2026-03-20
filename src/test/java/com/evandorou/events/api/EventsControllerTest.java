@@ -100,4 +100,20 @@ class EventsControllerTest {
 
         verify(feedRegistry).get(new FeedId("openf1", "v1"));
     }
+
+    @Test
+    void listEvents_whenFeedReturnsEmptyPage_returns200WithEmptyItems() throws Exception {
+        FeedAdapter adapter = mock(FeedAdapter.class);
+        when(feedRegistry.get(any(FeedId.class))).thenReturn(adapter);
+        when(adapter.listEvents(any(EventListingQuery.class)))
+                .thenReturn(CursorPage.of(List.of(), null));
+
+        mockMvc.perform(get("/api/v1/events")
+                        .header("X-User-Id", "user-openf1-down")
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items.length()").value(0))
+                .andExpect(jsonPath("$.hasMore").value(false));
+    }
 }

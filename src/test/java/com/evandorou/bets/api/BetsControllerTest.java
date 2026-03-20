@@ -1,6 +1,8 @@
 package com.evandorou.bets.api;
 
 import com.evandorou.bets.service.BetService;
+import com.evandorou.bets.service.InvalidBetException;
+import com.evandorou.bets.service.ResultNotAvailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -90,4 +92,47 @@ class BetsControllerTest {
 
         verify(betService).settleEventWithResult(eq("openf1:v1:1"), eq(44));
     }
+
+    @Test
+    void placeBet_whenOpenF1HasNoDrivers_returns400WithEventNotFoundCode() throws Exception {
+        when(betService.placeBet(eq("u1"), eq("openf1:v1:999"), eq("winner"), eq("1"), any(BigDecimal.class), eq(3)))
+                .thenThrow(new InvalidBetException(
+                        "EVENT_NOT_FOUND",
+                        "No drivers for this session; check event id and OpenF1 data"));
+
+        mockMvc.perform(post("/api/v1/bets")
+                        .header("X-User-Id", "u1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"eventId\":\"openf1:v1:999\",\"marketKey\":\"winner\",\"outcomeId\":\"1\",\"stakeEur\":10,\"odds\":3}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("EVENT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void settleBet_whenOpenF1SessionResultMissing_returns409WithResultNotAvailableCode() throws Exception {
+        UUID betId = UUID.fromString("00000000-0000-0000-0000-000000000099");
+        when(betService.settleBet(eq("u1"), eq(betId))).thenThrow(new ResultNotAvailableException());
+
+        mockMvc.perform(post("/api/v1/bets/{id}/settle", betId)
+                        .header("X-User-Id", "u1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("RESULT_NOT_AVAILABLE"));
+    }
+
+    @Test
+    void settleEvent_whenOpenF1HasNoDrivers_returns400WithEventNotFoundCode() throws Exception {
+        when(betService.settleEventWithResult(eq("openf1:v1:999"), eq(1)))
+                .thenThrow(new InvalidBetException(
+                        "EVENT_NOT_FOUND",
+                        "No drivers for this session; check event id and OpenF1 data"));
+
+        mockMvc.perform(post("/api/v1/bets/events/settle")
+                        .header("X-User-Id", "operator-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"eventId\":\"openf1:v1:999\",\"driverNumber\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("EVENT_NOT_FOUND"));
+    }
+
 }
